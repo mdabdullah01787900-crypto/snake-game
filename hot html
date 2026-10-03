@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Game</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #222;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .game {
+      text-align: center;
+      width: 95%;
+      max-width: 420px;
+    }
+
+    h1 {
+      margin: 10px 0;
+    }
+
+    #score {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 1 / 1;
+      background: #111;
+      border: 4px solid white;
+      display: block;
+      margin: auto;
+    }
+
+    .controls {
+      margin: 20px auto;
+      display: grid;
+      grid-template-columns: 70px 70px 70px;
+      grid-template-rows: 60px 60px;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    button {
+      font-size: 28px;
+      border: none;
+      border-radius: 12px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.92);
+    }
+
+    #up {
+      grid-column: 2;
+    }
+
+    #left {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    #down {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    #right {
+      grid-column: 3;
+      grid-row: 2;
+    }
+
+    #restart {
+      margin-top: 5px;
+      padding: 10px 25px;
+      font-size: 18px;
+      background: #2196F3;
+    }
+
+    #message {
+      height: 25px;
+      margin-top: 8px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="game">
+
+    <h1>🐍 Snake Game</h1>
+
+    <div id="score">Score: 0</div>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <div id="message"></div>
+
+    <div class="controls">
+      <button id="up">⬆️</button>
+      <button id="left">⬅️</button>
+      <button id="down">⬇️</button>
+      <button id="right">➡️</button>
+    </div>
+
+    <button id="restart">🔄 Restart</button>
+
+  </div>
+
+<script>
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const box = 20;
+
+let snake;
+let food;
+let direction;
+let nextDirection;
+let score;
+let gameRunning;
+let gameLoop;
+
+
+function startGame() {
+
+  snake = [
+    { x: 200, y: 200 },
+    { x: 180, y: 200 },
+    { x: 160, y: 200 }
+  ];
+
+  food = createFood();
+
+  direction = "RIGHT";
+  nextDirection = "RIGHT";
+
+  score = 0;
+  gameRunning = true;
+
+  document.getElementById("score").textContent = "Score: 0";
+  document.getElementById("message").textContent = "";
+
+  clearInterval(gameLoop);
+  gameLoop = setInterval(updateGame, 120);
+
+  drawGame();
+}
+
+
+function createFood() {
+
+  let newFood;
+
+  do {
+    newFood = {
+      x: Math.floor(Math.random() * (canvas.width / box)) * box,
+      y: Math.floor(Math.random() * (canvas.height / box)) * box
+    };
+  } while (
+    snake &&
+    snake.some(part => part.x === newFood.x && part.y === newFood.y)
+  );
+
+  return newFood;
+}
+
+
+function updateGame() {
+
+  if (!gameRunning) return;
+
+  direction = nextDirection;
+
+  const head = {
+    x: snake[0].x,
+    y: snake[0].y
+  };
+
+
+  if (direction === "UP") {
+    head.y -= box;
+  }
+
+  if (direction === "DOWN") {
+    head.y += box;
+  }
+
+  if (direction === "LEFT") {
+    head.x -= box;
+  }
+
+  if (direction === "RIGHT") {
+    head.x += box;
+  }
+
+
+  // দেয়ালে লাগলে Game Over
+  if (
+    head.x < 0 ||
+    head.x >= canvas.width ||
+    head.y < 0 ||
+    head.y >= canvas.height
+  ) {
+    gameOver();
+    return;
+  }
+
+
+  // নিজের শরীরে লাগলে Game Over
+  if (snake.some(part => part.x === head.x && part.y === head.y)) {
+    gameOver();
+    return;
+  }
+
+
+  snake.unshift(head);
+
+
+  // খাবার খেলে
+  if (head.x === food.x && head.y === food.y) {
+
+    score++;
+
+    document.getElementById("score").textContent =
+      "Score: " + score;
+
+    food = createFood();
+
+  } else {
+
+    snake.pop();
+
+  }
+
+
+  drawGame();
+}
+
+
+function drawGame() {
+
+  // Background
+  ctx.fillStyle = "#111";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+  // Grid
+  ctx.strokeStyle = "#222";
+
+  for (let x = 0; x < canvas.width; x += box) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  for (let y = 0; y < canvas.height; y += box) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+
+
+  // Snake
+  snake.forEach((part, index) => {
+
+    ctx.fillStyle = index === 0 ? "#00ff66" : "#00cc55";
+
+    ctx.fillRect(
+      part.x + 1,
+      part.y + 1,
+      box - 2,
+      box - 2
+    );
+
+  });
+
+
+  // Food
+  ctx.fillStyle = "red";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    food.x + box / 2,
+    food.y + box / 2,
+    box / 2 - 2,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+}
+
+
+function gameOver() {
+
+  gameRunning = false;
+
+  clearInterval(gameLoop);
+
+  document.getElementById("message").textContent =
+    "💀 Game Over! Score: " + score;
+}
+
+
+function changeDirection(newDirection) {
+
+  if (!gameRunning) return;
+
+  // বিপরীত দিকে যেতে দেবে না
+  if (
+    newDirection === "UP" &&
+    direction !== "DOWN"
+  ) {
+    nextDirection = "UP";
+  }
+
+  if (
+    newDirection === "DOWN" &&
+    direction !== "UP"
+  ) {
+    nextDirection = "DOWN";
+  }
+
+  if (
+    newDirection === "LEFT" &&
+    direction !== "RIGHT"
+  ) {
+    nextDirection = "LEFT";
+  }
+
+  if (
+    newDirection === "RIGHT" &&
+    direction !== "LEFT"
+  ) {
+    nextDirection = "RIGHT";
+  }
+}
+
+
+// মোবাইল বাটন
+document.getElementById("up").addEventListener(
+  "click",
+  () => changeDirection("UP")
+);
+
+document.getElementById("down").addEventListener(
+  "click",
+  () => changeDirection("DOWN")
+);
+
+document.getElementById("left").addEventListener(
+  "click",
+  () => changeDirection("LEFT")
+);
+
+document.getElementById("right").addEventListener(
+  "click",
+  () => changeDirection("RIGHT")
+);
+
+
+// Keyboard
+document.addEventListener("keydown", function(event) {
+
+  if (event.key === "ArrowUp") {
+    changeDirection("UP");
+  }
+
+  if (event.key === "ArrowDown") {
+    changeDirection("DOWN");
+  }
+
+  if (event.key === "ArrowLeft") {
+    changeDirection("LEFT");
+  }
+
+  if (event.key === "ArrowRight") {
+    changeDirection("RIGHT");
+  }
+
+});
+
+
+// Restart
+document.getElementById("restart").addEventListener(
+  "click",
+  startGame
+);
+
+
+// Game শুরু
+startGame();
+
+</script>
+
+</body>
+</html>
